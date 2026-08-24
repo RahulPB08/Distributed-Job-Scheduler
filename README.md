@@ -259,7 +259,16 @@ docker compose up --build
 
 ### 2. Manual Step-by-Step Setup
 
-#### Step A: Backend Server
+#### Step A: Environment Configuration
+```bash
+# Copy the example environment file
+cp .env.example .env
+
+# Or for backend service specifically:
+cp backend/.env.example backend/.env
+```
+
+#### Step B: Backend Server
 ```bash
 cd backend
 npm install

@@ -126,6 +126,16 @@ export class BatchController {
         return res.status(400).json({ success: false, error: { code: 'BAD_REQUEST', message: 'No jobs specified for batch' } });
       }
 
+      // Verify that any explicit queueIds belong to this project
+      for (const j of jobList) {
+        if (j.queueId) {
+          const q = await get('SELECT project_id FROM queues WHERE id = ?', [j.queueId]);
+          if (!q || q.project_id !== parsed.projectId) {
+            return res.status(400).json({ success: false, error: { code: 'BAD_REQUEST', message: 'Queue does not belong to specified project' } });
+          }
+        }
+      }
+
       const batchId = uuidv4();
       const now = new Date().toISOString();
       const totalJobs = jobList.length;

@@ -1,73 +1,133 @@
 /**
- * Distributed Job Scheduler — Master Test Suite Runner
- * Runs the unified end-to-end test suite and subsystem verification suites.
+ * Distributed Job Scheduler — Master Cross-Platform Test Suite Runner
+ * Runs unified end-to-end, subsystem verification, cross-OS, and cross-device suites
+ * on ANY Operating System (Windows, Linux, macOS, WSL) and ANY Architecture (x86_64, ARM64).
  */
 
 import { spawn } from 'child_process';
 import path from 'path';
+import fs from 'fs';
+import os from 'os';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const testFiles = [
-  'e2e_system_suite.test.js',
-  'api.test.js',
-  'dynamic_queue_sharding.test.js',
-  'data_isolation.test.js',
-  'distributed_lock.test.js',
-  'event_driven_execution.test.js',
-  'rate_limiting.test.js',
-  'retry.test.js',
-  'shard_routing.test.js',
-  'worker.test.js'
-];
+// Filter argument parsing (e.g. node tests/run_all.js --filter=security or node tests/run_all.js api)
+const args = process.argv.slice(2);
+let filterQuery = '';
+for (const arg of args) {
+  if (arg.startsWith('--filter=')) {
+    filterQuery = arg.split('=')[1].toLowerCase();
+  } else if (!arg.startsWith('-')) {
+    filterQuery = arg.toLowerCase();
+  }
+}
+
+// Auto-discover all .test.js files in tests/
+const allFiles = fs.readdirSync(__dirname)
+  .filter(f => f.endsWith('.test.js'))
+  .sort((a, b) => {
+    // Prioritize system & cross-platform suites first
+    if (a.includes('e2e_system')) return -1;
+    if (b.includes('e2e_system')) return 1;
+    if (a.includes('cross_os')) return -1;
+    if (b.includes('cross_os')) return 1;
+    if (a.includes('cross_device')) return -1;
+    if (b.includes('cross_device')) return 1;
+    return a.localeCompare(b);
+  });
+
+const testFiles = filterQuery 
+  ? allFiles.filter(f => f.toLowerCase().includes(filterQuery))
+  : allFiles;
 
 async function runSingleTest(file) {
+  const startTime = Date.now();
   return new Promise((resolve) => {
     const fullPath = path.resolve(__dirname, file);
     const backendNodeModules = path.resolve(__dirname, '../backend/node_modules');
-    const proc = spawn('node', ['--test', fullPath], {
+    const workerNodeModules = path.resolve(__dirname, '../worker/node_modules');
+    
+    // Cross-platform node_path resolution
+    const combinedNodePath = [
+      backendNodeModules,
+      workerNodeModules,
+      process.env.NODE_PATH || ''
+    ].filter(Boolean).join(path.delimiter);
+
+    const proc = spawn(process.execPath, ['--test', fullPath], {
       stdio: 'inherit',
       env: {
         ...process.env,
-        NODE_PATH: `${backendNodeModules}${path.delimiter}${process.env.NODE_PATH || ''}`
+        NODE_PATH: combinedNodePath
       }
     });
 
     proc.on('close', (code) => {
-      resolve({ file, passed: code === 0 });
+      const durationMs = Date.now() - startTime;
+      resolve({ file, passed: code === 0, durationMs });
     });
   });
 }
 
+function printEnvironmentBanner() {
+  const platform = os.platform();
+  const arch = os.arch();
+  const cpus = os.cpus();
+  const totalMemGb = (os.totalmem() / (1024 * 1024 * 1024)).toFixed(2);
+  const freeMemGb = (os.freemem() / (1024 * 1024 * 1024)).toFixed(2);
+
+  console.log('╔══════════════════════════════════════════════════════════════════════╗');
+  console.log('║   DISTRIBUTED JOB SCHEDULER — MASTER CROSS-PLATFORM TEST RUNNER      ║');
+  console.log('╚══════════════════════════════════════════════════════════════════════╝');
+  console.log(` ▸ Operating System : ${platform} (${os.type()} ${os.release()})`);
+  console.log(` ▸ Architecture     : ${arch} | Logical CPU Cores: ${cpus.length} [${cpus[0]?.model?.trim() || 'Generic'}]`);
+  console.log(` ▸ Memory Profile   : ${freeMemGb} GB free / ${totalMemGb} GB total`);
+  console.log(` ▸ Node.js Runtime  : ${process.version} (V8: ${process.versions.v8})`);
+  console.log(` ▸ Workspace Root   : ${path.resolve(__dirname, '..')}`);
+  if (filterQuery) {
+    console.log(` ▸ Filter Applied   : "${filterQuery}" (${testFiles.length} matched)`);
+  }
+  console.log('────────────────────────────────────────────────────────────────────────\n');
+}
+
 async function runAll() {
-  console.log('╔════════════════════════════════════════════════════════════╗');
-  console.log('║   DISTRIBUTED JOB SCHEDULER — MASTER TEST SUITE RUNNER      ║');
-  console.log('╚════════════════════════════════════════════════════════════╝\n');
+  printEnvironmentBanner();
+
+  if (testFiles.length === 0) {
+    console.log(`⚠ No test files found matching query: "${filterQuery}"\n`);
+    process.exit(1);
+  }
+
+  console.log(`Discovered ${testFiles.length} test suites. Executing sequential runs...\n`);
 
   const results = [];
   for (const file of testFiles) {
-    console.log(`\n▶ RUNNING: tests/${file}...`);
+    console.log(`\n▶ [SUITE] RUNNING: tests/${file}...`);
     const res = await runSingleTest(file);
     results.push(res);
   }
 
-  console.log('\n╔════════════════════════════════════════════════════════════╗');
-  console.log('║   TEST SUITE EXECUTION SUMMARY                             ║');
-  console.log('╚════════════════════════════════════════════════════════════╝');
+  console.log('\n╔══════════════════════════════════════════════════════════════════════╗');
+  console.log('║   TEST SUITE EXECUTION SUMMARY                                       ║');
+  console.log('╚══════════════════════════════════════════════════════════════════════╝');
 
   let passedCount = 0;
   for (const r of results) {
+    const timeStr = `${(r.durationMs / 1000).toFixed(2)}s`;
     if (r.passed) {
-      console.log(`  ✓ PASSED: tests/${r.file}`);
+      console.log(`  ✓ PASSED : tests/${r.file.padEnd(35)} (${timeStr})`);
       passedCount++;
     } else {
-      console.log(`  ✗ FAILED: tests/${r.file}`);
+      console.log(`  ✗ FAILED : tests/${r.file.padEnd(35)} (${timeStr})`);
     }
   }
 
-  console.log(`\nTOTAL: ${passedCount} / ${results.length} Test Suites Passed (${Math.round((passedCount / results.length) * 100)}%)\n`);
+  const passPercentage = Math.round((passedCount / results.length) * 100);
+  console.log('────────────────────────────────────────────────────────────────────────');
+  console.log(`TOTAL: ${passedCount} / ${results.length} Test Suites Passed (${passPercentage}%)\n`);
+
   process.exit(passedCount === results.length ? 0 : 1);
 }
 

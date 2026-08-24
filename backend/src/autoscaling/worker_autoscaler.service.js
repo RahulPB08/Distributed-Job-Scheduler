@@ -18,11 +18,15 @@ import { QueueManager } from '../redis/queue_manager.js';
 export class WorkerAutoScalerService {
   static config = {
     enabled: true,
+    minWorkers: 2,
+    maxWorkers: 15,
     minWorkersPerProject: 2,         // Minimum 2 workers per project
     maxWorkersTotal: 15,             // Global cap across all projects
     jobsPerWorkerThreshold: 8,       // Jobs per worker before scaling up
     scaleUpCooldownSec: 3,           // Seconds between scale-up events per project
     scaleDownCooldownSec: 12,        // Seconds of idle before scaling down
+    scaleUpHysteresis: 1,            // Number of consecutive ticks before scale-up
+    cpuScaleUpPercent: 80,           // CPU usage threshold for scale-up
     checkIntervalMs: 2000            // Evaluate fleet every 2 seconds
   };
 
@@ -47,13 +51,12 @@ export class WorkerAutoScalerService {
     this.config = {
       ...this.config,
       ...newConfig,
-      minWorkersPerProject: Math.max(1, parseInt(newConfig.minWorkersPerProject ?? this.config.minWorkersPerProject, 10)),
-      maxWorkersTotal: Math.max(2, parseInt(newConfig.maxWorkersTotal ?? this.config.maxWorkersTotal, 10)),
-      jobsPerWorkerThreshold: Math.max(1, parseInt(newConfig.jobsPerWorkerThreshold ?? this.config.jobsPerWorkerThreshold, 10))
+      minWorkersPerProject: Math.max(1, parseInt(newConfig.minWorkersPerProject ?? newConfig.minWorkers ?? this.config.minWorkersPerProject, 10)),
+      maxWorkersTotal: Math.max(2, parseInt(newConfig.maxWorkersTotal ?? newConfig.maxWorkers ?? this.config.maxWorkersTotal, 10)),
+      jobsPerWorkerThreshold: Math.max(1, parseInt(newConfig.jobsPerWorkerThreshold ?? this.config.jobsPerWorkerThreshold, 10)),
+      minWorkers: Math.max(1, parseInt(newConfig.minWorkers ?? newConfig.minWorkersPerProject ?? this.config.minWorkers, 10)),
+      maxWorkers: Math.max(2, parseInt(newConfig.maxWorkers ?? newConfig.maxWorkersTotal ?? this.config.maxWorkers, 10))
     };
-    // Keep legacy compat
-    if (newConfig.minWorkers) this.config.minWorkersPerProject = Math.max(1, parseInt(newConfig.minWorkers, 10));
-    if (newConfig.maxWorkers) this.config.maxWorkersTotal = Math.max(2, parseInt(newConfig.maxWorkers, 10));
     return this.getConfig();
   }
 
@@ -270,7 +273,9 @@ export class WorkerAutoScalerService {
 
   static _recordScaleEvent(event) {
     this.state.scaleEvents.push(event);
-    if (this.state.scaleEvents.length > 30) this.state.scaleEvents.shift();
+    while (this.state.scaleEvents.length > 20) {
+      this.state.scaleEvents.shift();
+    }
   }
 
   /**

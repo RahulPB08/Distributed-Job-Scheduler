@@ -1,0 +1,36 @@
+# syntax=docker/dockerfile:1
+# Universal Cross-Platform Test Runner Image
+# Compatible with x86_64, ARM64 (Apple Silicon / Raspberry Pi), Linux, Windows containers
+
+FROM node:20-alpine AS test-base
+
+WORKDIR /app
+
+# Install build tools for sqlite3 native bindings if required
+RUN apk add --no-cache python3 make g++ bash
+
+# Copy backend dependencies
+COPY backend/package*.json ./backend/
+RUN cd backend && npm install --no-audit
+
+# Copy worker dependencies
+COPY worker/package*.json ./worker/
+RUN cd worker && npm install --no-audit
+
+# Copy root workspace package
+COPY package*.json ./
+RUN npm install --no-audit
+
+# Copy source code and test files
+COPY backend/ ./backend/
+COPY worker/ ./worker/
+COPY scheduler/ ./scheduler/
+COPY tests/ ./tests/
+
+ENV NODE_ENV=test
+ENV REDIS_HOST=test-redis
+ENV REDIS_PORT=6379
+ENV DB_PATH=/app/data/test_database.sqlite
+
+# Run cross-platform test runner
+CMD ["node", "tests/run_all.js"]

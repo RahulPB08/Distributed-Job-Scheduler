@@ -1,0 +1,26 @@
+services:
+  test-redis:
+    image: redis:7-alpine
+    container_name: djs-test-redis
+    ports:
+      - "6380:6379"
+    restart: "no"
+
+  test-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: djs-test-runner
+    environment:
+      - NODE_ENV=test
+      - REDIS_HOST=test-redis
+      - REDIS_PORT=6379
+      - DB_PATH=/app/data/test_database.sqlite
+    volumes:
+      - test_djs_data:/app/data
+    depends_on:
+      - test-redis
+    restart: "no"
+
+volumes:
+  test_djs_data:

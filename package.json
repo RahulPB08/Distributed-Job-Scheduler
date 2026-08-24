@@ -4,7 +4,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test --test-concurrency=1 tests/*.test.js",
+    "test": "node tests/run_all.js",
+    "test:all": "node tests/run_all.js",
+    "test:cross-os": "node --test tests/cross_os_compatibility.test.js",
+    "test:cross-device": "node --test tests/cross_device.test.js",
+    "test:security": "node --test tests/security_audit.test.js",
+    "test:docker": "docker compose -f docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from test-runner",
     "start:backend": "npm --prefix backend start",
     "start:worker": "npm --prefix worker start",
     "start:frontend": "npm --prefix frontend dev",

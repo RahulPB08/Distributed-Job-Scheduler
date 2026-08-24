@@ -1,0 +1,55 @@
+name: Cross-Platform & Cross-Device CI Matrix
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+  workflow_dispatch:
+
+jobs:
+  multi-os-matrix-test:
+    name: Test on ${{ matrix.os }} (Node ${{ matrix.node-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node-version: [20.x, 22.x]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: '**/package-lock.json'
+
+      - name: Install Root Dependencies
+        run: npm install --no-audit
+
+      - name: Install Backend Dependencies
+        run: cd backend && npm install --no-audit
+
+      - name: Install Worker Dependencies
+        run: cd worker && npm install --no-audit
+
+      - name: Run Cross-Platform Diagnostics & Test Suite
+        run: node tests/run_all.js
+
+  containerized-docker-test:
+    name: Test in Docker Container (Multi-Arch Isolated)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Build and Run Dockerized Test Suite
+        run: docker compose -f docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from test-runner
+
+      - name: Cleanup Containers
+        if: always()
+        run: docker compose -f docker-compose.test.yml down -v

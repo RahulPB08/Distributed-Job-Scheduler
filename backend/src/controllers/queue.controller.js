@@ -397,6 +397,31 @@ export class QueueController {
     }
   }
 
+  static async purge(req, res, next) {
+    try {
+      const queue = await get(
+        `SELECT q.*, p.org_id FROM queues q JOIN projects p ON q.project_id = p.id WHERE q.id = ?`,
+        [req.params.id]
+      );
+      if (!queue) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Queue not found' } });
+
+      if (req.user.role !== 'admin') {
+        const membership = await get(
+          'SELECT id FROM organization_members WHERE org_id = ? AND user_id = ?',
+          [queue.org_id, req.user.id]
+        );
+        if (!membership) {
+          return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Access denied' } });
+        }
+      }
+
+      await run("UPDATE jobs SET status = 'cancelled', updated_at = ? WHERE queue_id = ? AND status = 'queued'", [new Date().toISOString(), req.params.id]);
+      res.json({ success: true, message: 'Queue purged successfully' });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   static async delete(req, res, next) {
     try {
       const queue = await get('SELECT q.*, p.org_id FROM queues q JOIN projects p ON q.project_id = p.id WHERE q.id = ?', [req.params.id]);
@@ -410,3 +435,4 @@ export class QueueController {
     }
   }
 }
+

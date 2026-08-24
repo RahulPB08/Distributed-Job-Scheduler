@@ -1,0 +1,18 @@
+{
+  "name": "distributed-job-scheduler-scheduler",
+  "version": "1.0.0",
+  "description": "Standalone Scheduler Service for Distributed Job Scheduler",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "cron-parser": "^5.10.0",
+    "dotenv": "^16.4.7",
+    "ioredis": "^5.4.2",
+    "sqlite3": "^5.1.7",
+    "uuid": "^11.0.5"
+  }
+}

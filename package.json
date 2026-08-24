@@ -1,0 +1,14 @@
+{
+  "name": "distributed-job-scheduler",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test --test-concurrency=1 tests/*.test.js",
+    "start:backend": "npm --prefix backend start",
+    "start:worker": "npm --prefix worker start",
+    "start:frontend": "npm --prefix frontend dev",
+    "test:backend": "npm --prefix backend test",
+    "test:worker": "npm --prefix worker test"
+  }
+}

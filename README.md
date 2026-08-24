@@ -327,4 +327,3 @@ TOTAL: 10 / 10 Test Suites Passed (100%)
 * **[Scheduling & Load Balancing Algorithms](file:///d:/Distributed%20Job%20Scheduler/distributed-job-scheduler/docs/SCHEDULING_ALGORITHMS.md)**: Mathematical formulas for Priority + Aging, Shard Router, and Adaptive Multi-Queue Balancer.
 * **[REST API Documentation](file:///d:/Distributed%20Job%20Scheduler/distributed-job-scheduler/docs/API_DOCUMENTATION.md)**: OpenAPI-style endpoint reference with request and response payloads.
 * **[Design Decisions & Trade-Offs](file:///d:/Distributed%20Job%20Scheduler/distributed-job-scheduler/docs/DESIGN_DECISIONS.md)**: Rationales behind single scheduler leader, SQLite WAL, and work stealing.
-# Distributed-Job-Scheduler

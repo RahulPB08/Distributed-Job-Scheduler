@@ -1,0 +1,77 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: djs-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: djs-backend
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=production
+      - PORT=4000
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - DB_PATH=/app/data/djs_database.sqlite
+      - WORKER_API_URL=http://worker:5001
+    volumes:
+      - djs_data:/app/data
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  scheduler:
+    build:
+      context: ./scheduler
+      dockerfile: Dockerfile
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - DB_PATH=/app/data/djs_database.sqlite
+      - POLL_INTERVAL_SECONDS=1.0
+    volumes:
+      - djs_data:/app/data
+    depends_on:
+      - backend
+      - redis
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: ./worker
+      dockerfile: Dockerfile
+    container_name: djs-worker
+    ports:
+      - "5001:5001"
+    command: ["node", "src/index.js", "--concurrency=5", "--poll-interval=100"]
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - DB_PATH=/app/data/djs_database.sqlite
+      - WORKER_API_PORT=5001
+    volumes:
+      - djs_data:/app/data
+    depends_on:
+      - backend
+      - redis
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: djs-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  djs_data:

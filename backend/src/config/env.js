@@ -18,5 +18,5 @@ export const ENV = {
   REDIS_HOST: process.env.REDIS_HOST || '127.0.0.1',
   REDIS_PORT: parseInt(process.env.REDIS_PORT || '6379', 10),
   REDIS_PASSWORD: process.env.REDIS_PASSWORD || '',
-  USE_EMBEDDED_BROKER: process.env.USE_EMBEDDED_BROKER === 'true' || true
+  USE_EMBEDDED_BROKER: process.env.USE_EMBEDDED_BROKER !== 'false' && !process.env.REDIS_HOST?.includes('redis') && process.env.NODE_ENV !== 'production'
 };

@@ -9,15 +9,19 @@ WORKDIR /app
 # Install build tools for sqlite3 native bindings if required
 RUN apk add --no-cache python3 make g++ bash
 
-# Copy all workspace package manifests
+# Copy all workspace package manifests first (for Docker layer cache)
 COPY package*.json ./
 COPY backend/package*.json ./backend/
 COPY worker/package*.json ./worker/
 COPY scheduler/package*.json ./scheduler/
 COPY frontend/package*.json ./frontend/
 
-# Install unified workspace dependencies
+# Install root dependencies (needed for test files to resolve packages)
 RUN npm install --no-audit
+
+# Install backend and worker dependencies (needed by source files)
+RUN cd backend && npm install --no-audit
+RUN cd worker && npm install --no-audit
 
 # Copy source code and test files
 COPY backend/ ./backend/

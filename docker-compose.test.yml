@@ -16,6 +16,7 @@ services:
       - REDIS_HOST=test-redis
       - REDIS_PORT=6379
       - DB_PATH=/app/data/test_database.sqlite
+      - USE_EMBEDDED_BROKER=false
     volumes:
       - test_djs_data:/app/data
     depends_on:

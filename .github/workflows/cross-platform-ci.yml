@@ -29,8 +29,14 @@ jobs:
           cache: 'npm'
           cache-dependency-path: '**/package-lock.json'
 
-      - name: Install Dependencies (Workspaces)
+      - name: Install Root Dependencies
         run: npm install --no-audit
+
+      - name: Install Backend Dependencies
+        run: cd backend && npm install --no-audit
+
+      - name: Install Worker Dependencies
+        run: cd worker && npm install --no-audit
 
       - name: Run Cross-Platform Diagnostics & Test Suite
         run: node tests/run_all.js

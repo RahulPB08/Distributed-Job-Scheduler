@@ -13,7 +13,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import jwt from '../backend/node_modules/jsonwebtoken/index.js';
+import jwt from 'jsonwebtoken';
 import { initDb, closeDb, run, get, all } from '../backend/src/database/db.js';
 import { ENV } from '../backend/src/config/env.js';
 import { authenticate } from '../backend/src/middlewares/auth.middleware.js';

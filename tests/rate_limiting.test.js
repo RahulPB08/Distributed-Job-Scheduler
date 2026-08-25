@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'http';
-import express from '../backend/node_modules/express/index.js';
+import express from 'express';
 import { createRateLimiter } from '../backend/src/middlewares/rate_limit.middleware.js';
 
 test('Rate Limiting Middleware: Enforces request limits and attaches standard rate limit headers', async () => {

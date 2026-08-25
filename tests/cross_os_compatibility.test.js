@@ -68,7 +68,7 @@ test('Cross-OS: 3. Cross-platform temporary SQLite database lifecycle and lockin
   const tempDbPath = path.join(os.tmpdir(), tempDbName);
 
   try {
-    const sqlite3 = (await import('../backend/node_modules/sqlite3/lib/sqlite3.js')).default || (await import('sqlite3')).default;
+    const sqlite3 = (await import('sqlite3')).default;
     const db = new sqlite3.Database(tempDbPath);
 
     await new Promise((resolve, reject) => {

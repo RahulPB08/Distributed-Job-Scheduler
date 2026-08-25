@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import sqlite3 from '../backend/node_modules/sqlite3/lib/sqlite3.js';
+import sqlite3 from 'sqlite3';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';

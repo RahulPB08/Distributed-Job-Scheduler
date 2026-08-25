@@ -9,16 +9,14 @@ WORKDIR /app
 # Install build tools for sqlite3 native bindings if required
 RUN apk add --no-cache python3 make g++ bash
 
-# Copy backend dependencies
-COPY backend/package*.json ./backend/
-RUN cd backend && npm install --no-audit
-
-# Copy worker dependencies
-COPY worker/package*.json ./worker/
-RUN cd worker && npm install --no-audit
-
-# Copy root workspace package
+# Copy all workspace package manifests
 COPY package*.json ./
+COPY backend/package*.json ./backend/
+COPY worker/package*.json ./worker/
+COPY scheduler/package*.json ./scheduler/
+COPY frontend/package*.json ./frontend/
+
+# Install unified workspace dependencies
 RUN npm install --no-audit
 
 # Copy source code and test files

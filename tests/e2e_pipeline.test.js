@@ -45,7 +45,7 @@ test.after(async () => {
   if (server) {
     server.closeAllConnections?.();
     server.closeIdleConnections?.();
-    server.close();
+    await new Promise((res) => server.close(res));
   }
   await closeRedisConnections();
   await closeDb();

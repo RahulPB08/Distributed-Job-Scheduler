@@ -639,6 +639,7 @@ export class WorkerInstance {
     }
 
     this.heartbeatReporter.stop();
+    GlobalQueueConcurrencyController.close();
 
     await new Promise((resolve) => {
       this.db.run(

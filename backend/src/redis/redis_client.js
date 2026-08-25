@@ -67,6 +67,14 @@ export const closeRedisConnections = async () => {
     } catch (e) {}
     redisInstance = null;
   }
+  try {
+    const { GlobalQueueConcurrencyController: WorkerQC } = await import('../../worker/src/queue_concurrency.js');
+    WorkerQC?.close?.();
+  } catch (e) {}
+  try {
+    const { GlobalQueueConcurrencyController: BackendQC } = await import('../worker_engine/queue_concurrency.js');
+    BackendQC?.close?.();
+  } catch (e) {}
   if (embeddedBroker) {
     try {
       await embeddedBroker.stop();

@@ -28,6 +28,15 @@ export class GlobalQueueConcurrencyController {
     return this.redis;
   }
 
+  static close() {
+    if (this.redis) {
+      try {
+        this.redis.disconnect();
+      } catch (e) {}
+      this.redis = null;
+    }
+  }
+
   static ACQUIRE_LUA_SCRIPT = `
     local key = KEYS[1]
     local maxConcurrency = tonumber(ARGV[1])

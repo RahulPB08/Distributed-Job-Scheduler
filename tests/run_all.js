@@ -42,7 +42,7 @@ const testFiles = filterQuery
   ? allFiles.filter(f => f.toLowerCase().includes(filterQuery))
   : allFiles;
 
-async function runSingleTest(file) {
+async function runSingleTest(file, timeoutMs = 45000) {
   const startTime = Date.now();
   return new Promise((resolve) => {
     const fullPath = path.resolve(__dirname, file);
@@ -56,6 +56,7 @@ async function runSingleTest(file) {
       process.env.NODE_PATH || ''
     ].filter(Boolean).join(path.delimiter);
 
+    let isResolved = false;
     const proc = spawn(process.execPath, ['--test', fullPath], {
       stdio: 'inherit',
       env: {
@@ -64,9 +65,34 @@ async function runSingleTest(file) {
       }
     });
 
+    const timer = setTimeout(() => {
+      if (!isResolved) {
+        isResolved = true;
+        console.error(`\n✖ [TIMEOUT] Test suite ${file} exceeded ${timeoutMs / 1000}s limit. Terminating child process.`);
+        try {
+          proc.kill('SIGKILL');
+        } catch (e) {}
+        const durationMs = Date.now() - startTime;
+        resolve({ file, passed: false, durationMs, timedOut: true });
+      }
+    }, timeoutMs);
+
     proc.on('close', (code) => {
-      const durationMs = Date.now() - startTime;
-      resolve({ file, passed: code === 0, durationMs });
+      if (!isResolved) {
+        isResolved = true;
+        clearTimeout(timer);
+        const durationMs = Date.now() - startTime;
+        resolve({ file, passed: code === 0, durationMs });
+      }
+    });
+
+    proc.on('error', (err) => {
+      if (!isResolved) {
+        isResolved = true;
+        clearTimeout(timer);
+        const durationMs = Date.now() - startTime;
+        resolve({ file, passed: false, durationMs, error: err.message });
+      }
     });
   });
 }

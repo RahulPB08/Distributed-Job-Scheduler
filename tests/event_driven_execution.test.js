@@ -51,16 +51,6 @@ test.before(async () => {
   queueId = queues[0].id;
 });
 
-test.after(async () => {
-  if (server) {
-    server.closeAllConnections?.();
-    server.closeIdleConnections?.();
-    server.close();
-  }
-  await closeRedisConnections();
-  await closeDb();
-});
-
 test('Event-Driven: Create Event Trigger Subscription', async () => {
   const res = await fetch(`${baseUrl}/api/events/triggers`, {
     method: 'POST',
@@ -184,7 +174,7 @@ test.after(async () => {
   if (server) {
     server.closeAllConnections?.();
     server.closeIdleConnections?.();
-    server.close();
+    await new Promise((res) => server.close(res));
   }
   await closeRedisConnections();
   await closeDb();

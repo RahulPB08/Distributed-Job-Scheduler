@@ -16,7 +16,7 @@
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID as uuidv4 } from 'node:crypto';
-import { db, run, get, all } from '../backend/src/database/db.js';
+import { db, run, get, all, initDb, closeDb } from '../backend/src/database/db.js';
 import { startRedisBrokerIfNeeded, closeRedisConnections } from '../backend/src/redis/redis_client.js';
 import { WorkerInstance } from '../worker/src/worker.js';
 import { ShardRouterService } from '../backend/src/autoscaling/shard_router.service.js';
@@ -34,6 +34,9 @@ describe('Distributed Job Scheduler — Comprehensive Verification Suite', () =>
   before(async () => {
     // Ensure embedded Redis broker is running (required for WorkerInstance in CI)
     await startRedisBrokerIfNeeded();
+
+    // Initialize database schema (creates all tables — required in fresh CI environments)
+    await initDb();
 
     testUserId = `test_user_${uuidv4().slice(0, 8)}`;
     testOrgId = `test_org_${uuidv4().slice(0, 8)}`;
@@ -281,10 +284,11 @@ describe('Distributed Job Scheduler — Comprehensive Verification Suite', () =>
   });
 
   after(async () => {
-    // Shutdown worker and close all Redis connections to allow clean process exit
+    // Shutdown worker and close all Redis/DB connections to allow clean process exit
     if (testWorker) {
       try { await testWorker.shutdown(); } catch (e) {}
     }
     await closeRedisConnections();
+    closeDb();
   });
 });

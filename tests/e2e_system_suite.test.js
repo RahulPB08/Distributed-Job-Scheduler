@@ -17,6 +17,7 @@ import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID as uuidv4 } from 'node:crypto';
 import { db, run, get, all } from '../backend/src/database/db.js';
+import { startRedisBrokerIfNeeded, closeRedisConnections } from '../backend/src/redis/redis_client.js';
 import { WorkerInstance } from '../worker/src/worker.js';
 import { ShardRouterService } from '../backend/src/autoscaling/shard_router.service.js';
 import { ensureServiceQueues, JOB_TYPE_TO_SERVICE_QUEUE } from '../backend/src/controllers/queue.controller.js';
@@ -31,6 +32,9 @@ describe('Distributed Job Scheduler — Comprehensive Verification Suite', () =>
   let testWorker;
 
   before(async () => {
+    // Ensure embedded Redis broker is running (required for WorkerInstance in CI)
+    await startRedisBrokerIfNeeded();
+
     testUserId = `test_user_${uuidv4().slice(0, 8)}`;
     testOrgId = `test_org_${uuidv4().slice(0, 8)}`;
     testProjectId = `test_proj_${uuidv4().slice(0, 8)}`;
@@ -274,5 +278,13 @@ describe('Distributed Job Scheduler — Comprehensive Verification Suite', () =>
     const acquired3 = await lock3.acquire();
     assert.ok(acquired3, 'Lock must be acquirable after release');
     await lock3.release();
+  });
+
+  after(async () => {
+    // Shutdown worker and close all Redis connections to allow clean process exit
+    if (testWorker) {
+      try { await testWorker.shutdown(); } catch (e) {}
+    }
+    await closeRedisConnections();
   });
 });

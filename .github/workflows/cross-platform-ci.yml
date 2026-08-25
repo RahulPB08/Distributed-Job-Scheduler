@@ -33,12 +33,15 @@ jobs:
         run: npm install --no-audit
 
       - name: Install Backend Dependencies
-        run: cd backend && npm install --no-audit
+        run: npm --prefix backend install --no-audit
 
       - name: Install Worker Dependencies
-        run: cd worker && npm install --no-audit
+        run: npm --prefix worker install --no-audit
 
       - name: Run Cross-Platform Diagnostics & Test Suite
+        env:
+          NODE_ENV: test
+          USE_EMBEDDED_BROKER: "true"
         run: node tests/run_all.js
 
   containerized-docker-test:

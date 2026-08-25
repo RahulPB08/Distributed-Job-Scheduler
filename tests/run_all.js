@@ -70,7 +70,8 @@ async function runSingleTest(file, timeoutMs = 45000) {
         isResolved = true;
         console.error(`\n✖ [TIMEOUT] Test suite ${file} exceeded ${timeoutMs / 1000}s limit. Terminating child process.`);
         try {
-          proc.kill('SIGKILL');
+          // proc.kill() without signal works on all platforms including Windows
+          proc.kill();
         } catch (e) {}
         const durationMs = Date.now() - startTime;
         resolve({ file, passed: false, durationMs, timedOut: true });
@@ -154,7 +155,10 @@ async function runAll() {
   console.log('────────────────────────────────────────────────────────────────────────');
   console.log(`TOTAL: ${passedCount} / ${results.length} Test Suites Passed (${passPercentage}%)\n`);
 
-  process.exit(passedCount === results.length ? 0 : 1);
+  const exitCode = passedCount === results.length ? 0 : 1;
+  // Force exit to prevent any lingering handles (Redis, net.Server, timers) from
+  // keeping the process alive after all tests finish.
+  setTimeout(() => process.exit(exitCode), 500);
 }
 
 runAll();
